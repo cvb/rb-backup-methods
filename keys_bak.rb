@@ -4,6 +4,7 @@ class Backuper
   def keys_bak(params)
     pwd = File.expand_path(params['to'])
     p=KeysBac.new params['name']
+    keys_bak_msg = "KeysBac:"
     begin 
       p.backup_keys pwd
     rescue KeysBacException => e
@@ -20,9 +21,9 @@ class KeysBac
   def initialize(name,rewrite=false)
     @name = name
     @secret = `gpg --export-secret-keys '#{name}'`
-    return "Can't get secret key for #{name}" if not $?.success?
+    raise KeysBacException, "Can't get secret key for #{name}" if not $?.success?
     @pub = `gpg --export '#{name}'`
-    return "Can't get public key for #{name}" if not $?.success?
+    raise KeysBacException, "Can't get public key for #{name}" if not $?.success?
     @pub_file = '/' + name + ".pub"
     @sec_file = '/' + name + ".secret"
   end
@@ -45,41 +46,25 @@ class KeysBac
   end
   
   def same_keys?(destination)
-    if is_seckey_same?(destination) and is_pubkeys_same?(destination)
-      true
-      else false
-    end
+    is_seckey_same?(destination) and is_pubkeys_same?(destination)
   end
   
   # Check for existence of key files in destination
   def is_pubfile_exist?(destination)
-    if File.file?(destination + @pub_file)
-      true
-      else false
-    end
+    File.file?(destination + @pub_file)
   end
   def is_secfile_exist?(destination)
-    if File.file?(destination + @sec_file)
-      true
-      else false
-    end
+    File.file?(destination + @sec_file)
   end
   
   def key_files_exists?(destination)
-    if is_pubfile_exist?(destination) and is_secfile_exist?(destination)
-      true
-      else false
-    end
+    is_pubfile_exist?(destination) and is_secfile_exist?(destination)
   end
 
-  # Check that both keys or no one exist at destination
+  # Check that both keys exist at destination
   def is_dest_consistent?(destination)
-    if is_pubfile_exist?(destination) and not is_secfile_exist?(destination) or
-        not is_pubfile_exist?(destination) and is_secfile_exist?(destination)
-      false
-    else 
-      true
-    end
+    not (is_pubfile_exist?(destination) and not is_secfile_exist?(destination) or
+         not is_pubfile_exist?(destination) and is_secfile_exist?(destination))
   end
   
   # Actually writing keys here
