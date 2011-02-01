@@ -1,0 +1,20 @@
+* This is backup methods for rb-backup git://github.com/cvb/rb-backup.git
+
+* For now there is:
+
+** rdiff_backup, 
+   config example:
+   name: 
+   from: from-source
+   to: backup-source
+   method: rdiff_backup
+
+** keys_bak
+   Made it for backuping gpg keys
+   
+   config example:
+   name: key-name
+   to: destination-folder
+   
+   Where key-name is name from gpg --list-key.
+   

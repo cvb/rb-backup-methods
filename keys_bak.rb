@@ -1,10 +1,13 @@
 require 'digest/sha1'
 
 class Backuper
-  def keys_bak(to, name)
-    pwd = File.expand_path(to)
-    p=KeysBac.new name
+  def keys_bak(params)
+    puts "running keys_bak"
+    pwd = File.expand_path(params['to'])
+    p=KeysBac.new params['name']
+    puts pwd
     p.backup_keys pwd
+  
   end
 end
 

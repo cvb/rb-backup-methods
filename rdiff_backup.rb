@@ -1,6 +1,6 @@
 class Backuper
-  def rdiff_backup(from, to)
-    result = `rdiff-backup #{from} #{to}`
+  def rdiff_backup(params)
+    result = `rdiff-backup #{params['from']} #{params['to']}`
     return result if not $?.success?
   end
 end
