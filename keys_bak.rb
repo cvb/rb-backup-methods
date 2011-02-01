@@ -2,21 +2,14 @@ require 'digest/sha1'
 
 class Backuper
   def keys_bak(to, name)
-    pwd = File.expand_path(dir)
-    return "Destination exist and not dir: #{to}" if File.file? pwd
-    secret = `gpg --export-secret-keys '#{name}'`
-    pub = `gpg --export-keys '#{name}'`
-    begin
-      Dir.mkdir pwd if nor Dir.exist? pwd
-      
-      rescue SystemCallError => e
-      return "SystemCallError: #{e.errno} #{e.message}"
-    end
+    pwd = File.expand_path(to)
+    p=KeysBac.new name
+    p.backup_keys pwd
   end
 end
 
 class KeysBac
-  def initialize(name,rewrite=false,)
+  def initialize(name,rewrite=false)
     @name = name
     @secret = `gpg --export-secret-keys '#{name}'`
     return "Can't get secret key for #{name}" if not $?.success?
@@ -43,7 +36,14 @@ class KeysBac
   end
   def is_seckey_same?(destination)
     sec_file = destination + @sec_file
-    is_same_hash?(pub_file, @secret)
+    is_same_hash?(sec_file, @secret)
+  end
+  
+  def same_keys?(destination)
+    if is_seckey_same?(destination) and is_pubkeys_same?(destination)
+      true
+      else false
+    end
   end
   
   # Check for existence of key files in destination
@@ -67,21 +67,59 @@ class KeysBac
     end
   end
 
+  # Check that both keys or no one exist at destination
   def is_dest_consistent?(destination)
     if is_pubfile_exist?(destination) and not is_secfile_exist?(destination) or
         not is_pubfile_exist?(destination) and is_secfile_exist?(destination)
+      false
+    else 
+      puts is_pubfile_exist?(destination)
+      puts is_secfile_exist?(destination)
       true
-    else false
+    end
+  end
+  
+  # Actually writing keys here
+  def write_keys(destination)
+    begin
+      File.open(destination + @pub_file, 'w') do |f|
+        f.write @pub
+      end
+      File.open(destination + @sec_file, 'w') do |f|
+        f.write @secret
+      end
+    rescue IOError => e
+      return "IOError: #{e.errno} #{e.message}"
+    end
+  end
+
+  # Check that destination is a directory and create if it's not exist
+  def check_dest_existance(destination)
+    if File.file?(destination)
+      "Error: destination is regular file, should be directory!"
+    elsif not Dir.exist?(destination)
+      begin
+        Dir.mkdir destination
+      rescue SystemCallError => e
+        return "SystemCallError: #{e.errno} #{e.message}"
+      end
     end
   end
   
   def backup_keys(destination)
-    if key_files_exists?(destination)
-      
+    check_dest_existance destination
+    if is_dest_consistent? destination 
+      if not key_files_exists? destination
+        write_keys destination
+      end
+      if not same_keys? destination
+        "Error: Something bad happened during keys files check, keys are wrong!"
+      end
+    else 
+      "Error: Keys dest is not consistent, fix it first!"
     end
   end
-
+  
 end
+  
 
-p=KeysBac.new('Peter <peter@standalone.su>')
-puts p.is_seckey_same?("/mnt/store/backup/")
