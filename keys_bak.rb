@@ -3,9 +3,9 @@ require 'digest/sha1'
 class Backuper
   def keys_bak(params)
     pwd = File.expand_path(params['to'])
-    p=KeysBac.new params['name']
-    keys_bak_msg = "KeysBac:"
+    keys_bak_msg = "KeysBac error:"
     begin 
+      p=KeysBac.new params['name']
       p.backup_keys pwd
     rescue KeysBacException => e
       return keys_bak_msg + "#{e.message}"
@@ -21,9 +21,9 @@ class KeysBac
   def initialize(name,rewrite=false)
     @name = name
     @secret = `gpg --export-secret-keys '#{name}'`
-    raise KeysBacException, "Can't get secret key for #{name}" if not $?.success?
+    raise KeysBacException, "Can't get secret key for #{name}" if @secret.empty?
     @pub = `gpg --export '#{name}'`
-    raise KeysBacException, "Can't get public key for #{name}" if not $?.success?
+    raise KeysBacException, "Can't get public key for #{name}" if @pub.empty?
     @pub_file = '/' + name + ".pub"
     @sec_file = '/' + name + ".secret"
   end
