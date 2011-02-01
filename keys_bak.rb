@@ -20,9 +20,6 @@ class KeysBac
   end
 
   def is_same_hash?(dest, name)
-    puts "File dest: #{dest}"
-    puts "Sha orig: #{Digest::SHA1.hexdigest name}"
-    puts "Sha backed: #{Digest::SHA1.hexdigest (File.open dest).read}"
     if File.file?(dest) and ((Digest::SHA1.hexdigest name) == (Digest::SHA1.hexdigest (File.open dest).read))
       true
     else false
@@ -73,8 +70,6 @@ class KeysBac
         not is_pubfile_exist?(destination) and is_secfile_exist?(destination)
       false
     else 
-      puts is_pubfile_exist?(destination)
-      puts is_secfile_exist?(destination)
       true
     end
   end
