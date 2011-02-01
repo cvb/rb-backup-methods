@@ -2,12 +2,17 @@ require 'digest/sha1'
 
 class Backuper
   def keys_bak(params)
-    puts "running keys_bak"
     pwd = File.expand_path(params['to'])
     p=KeysBac.new params['name']
-    puts pwd
-    p.backup_keys pwd
-  
+    begin 
+      p.backup_keys pwd
+    rescue KeysBacException => e
+      return keys_bak_msg + "#{e.message}"
+    rescue IOError => e
+      return keys_bak_msg + "IOError: #{e.errno} #{e.message}"
+    rescue SystemCallError => e
+      return keys_bak_msg + "SystemCallError: #{e.errno} #{e.message}"
+    end
   end
 end
 
@@ -18,8 +23,8 @@ class KeysBac
     return "Can't get secret key for #{name}" if not $?.success?
     @pub = `gpg --export '#{name}'`
     return "Can't get public key for #{name}" if not $?.success?
-    @pub_file = name + ".pub"
-    @sec_file = name + ".secret"
+    @pub_file = '/' + name + ".pub"
+    @sec_file = '/' + name + ".secret"
   end
 
   def is_same_hash?(dest, name)
@@ -86,20 +91,20 @@ class KeysBac
       File.open(destination + @sec_file, 'w') do |f|
         f.write @secret
       end
-    rescue IOError => e
-      return "IOError: #{e.errno} #{e.message}"
+    # rescue IOError => e
+    #   return "IOError: #{e.errno} #{e.message}"
     end
   end
 
   # Check that destination is a directory and create if it's not exist
   def check_dest_existance(destination)
     if File.file?(destination)
-      "Error: destination is regular file, should be directory!"
+      raise KeysBacException, "Error: destination is regular file, should be directory!"
     elsif not Dir.exist?(destination)
       begin
         Dir.mkdir destination
-      rescue SystemCallError => e
-        return "SystemCallError: #{e.errno} #{e.message}"
+      # rescue SystemCallError => e
+      #    "SystemCallError: #{e.errno} #{e.message}"
       end
     end
   end
@@ -111,13 +116,14 @@ class KeysBac
         write_keys destination
       end
       if not same_keys? destination
-        "Error: Something bad happened during keys files check, keys are wrong!"
+        raise KeysBacException, "Error: Something bad happened during keys files check, keys are wrong!"
       end
     else 
-      "Error: Keys dest is not consistent, fix it first!"
+      raise KeysBacException, "Error: Keys dest is not consistent, fix it first!"
     end
   end
   
 end
-  
 
+class KeysBacException < Exception
+end
